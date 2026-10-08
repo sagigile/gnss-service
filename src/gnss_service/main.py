@@ -8,7 +8,9 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from . import db, jobs
+from redis.exceptions import RedisError
+
+from . import db, jobqueue, jobs
 from .config import settings
 from .models import Job, JobStatus
 
@@ -52,8 +54,12 @@ async def _save_upload(upload: UploadFile, dest) -> None:
 
 
 def dispatch(job_id: str) -> None:
-    """Hand a job to an executor. Stage 2: inline. Stage 3 replaces this with a queue."""
-    jobs.run_job(job_id)
+    """Put the job on the RQ queue; a worker process picks it up."""
+    try:
+        jobqueue.enqueue_job(job_id)
+    except RedisError:
+        jobs.mark_failed(job_id, "queue unavailable")
+        raise HTTPException(503, "job queue is unavailable, try again later")
 
 
 @app.get("/health")

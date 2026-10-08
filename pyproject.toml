@@ -3,10 +3,10 @@ name = "gnss-service"
 version = "0.1.0"
 description = "Async web service that turns RINEX files into GNSS tracks (CSV/KML) and quality metrics"
 requires-python = ">=3.11"
-dependencies = ["numpy", "pandas", "fastapi", "uvicorn[standard]", "sqlalchemy", "alembic", "python-multipart"]
+dependencies = ["numpy", "pandas", "fastapi", "uvicorn[standard]", "sqlalchemy", "alembic", "python-multipart", "rq", "redis"]
 
 [project.optional-dependencies]
-dev = ["pytest", "httpx"]
+dev = ["pytest", "httpx", "fakeredis"]
 
 [build-system]
 requires = ["setuptools>=68"]

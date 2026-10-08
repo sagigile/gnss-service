@@ -17,6 +17,8 @@ def test_health(client):
 def test_successful_job_end_to_end(client, obs_bytes, nav_bytes):
     r = _post(client, obs_bytes, nav_bytes)
     assert r.status_code == 201
+    assert r.json()["status"] == "queued"
+    client.run_worker()
     job = client.get(f"/jobs/{r.json()['id']}").json()
     assert job["status"] == "succeeded"
     assert job["error"] is None
@@ -34,6 +36,7 @@ def test_successful_job_end_to_end(client, obs_bytes, nav_bytes):
 def test_bad_rinex_marks_job_failed(client, nav_bytes):
     r = _post(client, b"not rinex\n", nav_bytes)
     assert r.status_code == 201
+    client.run_worker()
     job = client.get(f"/jobs/{r.json()['id']}").json()
     assert job["status"] == "failed"
     assert job["error"]
@@ -46,6 +49,7 @@ def test_unknown_job_404(client):
 
 def test_unknown_result_name_404(client, obs_bytes, nav_bytes):
     jid = _post(client, obs_bytes, nav_bytes).json()["id"]
+    client.run_worker()
     assert client.get(f"/jobs/{jid}/result/passwd").status_code == 404
 
 
