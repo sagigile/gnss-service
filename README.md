@@ -1,5 +1,7 @@
 # GNSS Processing Service
 
+[![CI](https://github.com/sagigile/gnss-service/actions/workflows/ci.yml/badge.svg)](https://github.com/sagigile/gnss-service/actions/workflows/ci.yml)
+
 A backend service that turns a **RINEX** observation file into a position track (**CSV / KML**) plus quality
 metrics. Upload files to a REST API, get a job id back immediately, and poll for the result while a worker
 processes the job in the background.
