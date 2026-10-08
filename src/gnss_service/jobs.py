@@ -1,7 +1,7 @@
 """Job lifecycle: storage layout and execution of the solver for one job."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from rq.timeouts import JobTimeoutException
@@ -61,3 +61,18 @@ def on_job_failure(rq_job, connection, exc_type, exc_value, traceback) -> None:
     """RQ failure callback: covers timeouts and crashes that run_job cannot catch itself."""
     reason = "timeout" if "Timeout" in exc_type.__name__ else exc_type.__name__
     mark_failed(rq_job.args[0], f"job failed: {reason}")
+
+
+def sweep_stale_jobs(grace_seconds: int = 60, session_factory: sessionmaker | None = None) -> int:
+    """Fail jobs stuck in 'running' longer than the job timeout (e.g. the worker was killed)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(seconds=settings.job_timeout_seconds + grace_seconds)
+    session: Session = (session_factory or db.SessionLocal)()
+    try:
+        stale = session.query(Job).filter(Job.status == JobStatus.running, Job.started_at < cutoff).all()
+        for job in stale:
+            job.status, job.error = JobStatus.failed, "job failed: worker lost"
+            job.finished_at = datetime.now(timezone.utc)
+        session.commit()
+        return len(stale)
+    finally:
+        session.close()

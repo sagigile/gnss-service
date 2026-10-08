@@ -1,0 +1,60 @@
+x-app: &app
+  build: .
+  environment: &env
+    DATABASE_URL: postgresql+psycopg://gnss:${POSTGRES_PASSWORD:-gnss}@postgres:5432/gnss
+    REDIS_URL: redis://redis:6379/0
+    STORAGE_DIR: /data
+    JOB_TIMEOUT_SECONDS: ${JOB_TIMEOUT_SECONDS:-600}
+  volumes:
+    - storage:/data
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: gnss
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gnss}
+      POSTGRES_DB: gnss
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gnss -d gnss"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: *app
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres: {condition: service_healthy}
+    restart: "no"
+
+  api:
+    <<: *app
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+  worker:
+    <<: *app
+    restart: unless-stopped
+    command: ["python", "-m", "gnss_service.worker"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+
+volumes:
+  pgdata:
+  storage:

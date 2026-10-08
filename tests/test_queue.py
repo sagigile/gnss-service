@@ -80,3 +80,19 @@ def test_real_timeout_marks_job_failed(client, monkeypatch, obs_bytes, nav_bytes
     client.run_worker()
     job = _status(jid)
     assert job.status == JobStatus.failed and "timeout" in job.error
+
+
+def test_sweeper_fails_only_stale_running_jobs(client, monkeypatch, obs_bytes, nav_bytes):
+    from datetime import datetime, timedelta, timezone
+
+    old = _post(client, obs_bytes, nav_bytes).json()["id"]
+    fresh = _post(client, obs_bytes, nav_bytes).json()["id"]
+    now = datetime.now(timezone.utc)
+    with db.SessionLocal() as s:
+        for jid, age in ((old, 3600), (fresh, 5)):
+            j = s.get(Job, jid)
+            j.status, j.started_at = JobStatus.running, now - timedelta(seconds=age)
+        s.commit()
+    assert jobs.sweep_stale_jobs() == 1
+    assert _status(old).status == JobStatus.failed and "worker lost" in _status(old).error
+    assert _status(fresh).status == JobStatus.running
