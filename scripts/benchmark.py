@@ -51,8 +51,13 @@ def sequential(client, obs: str, reps: int) -> dict:
         proc.append(ts(j["finished_at"]) - ts(j["started_at"]))
         e2e.append(ts(j["finished_at"]) - ts(j["created_at"]))
         meta = j["metrics"]
-    return {"file": obs, "size_mb": round((DATA / obs).stat().st_size / 2**20, 2),
-            "epochs_in_obs": meta["epochs_in_obs"], "processing": summarize(proc), "end_to_end": summarize(e2e)}
+    return {
+        "file": obs,
+        "size_mb": round((DATA / obs).stat().st_size / 2**20, 2),
+        "epochs_in_obs": meta["epochs_in_obs"],
+        "processing": summarize(proc),
+        "end_to_end": summarize(e2e),
+    }
 
 
 def burst(base: str, obs: str, k: int) -> dict:
