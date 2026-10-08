@@ -12,7 +12,11 @@ from .config import settings
 from .models import Job, JobStatus
 from .solver.pipeline import SolverError, process
 
-RESULT_FILES = {"clean.csv": "text/csv", "raw.csv": "text/csv", "clean.kml": "application/vnd.google-earth.kml+xml"}
+RESULT_FILES = {
+    "clean.csv": "text/csv",
+    "raw.csv": "text/csv",
+    "clean.kml": "application/vnd.google-earth.kml+xml",
+}
 
 
 def job_dir(job_id: str) -> Path:

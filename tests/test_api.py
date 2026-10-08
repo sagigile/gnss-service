@@ -1,9 +1,9 @@
 import io
 
+import pandas as pd
+
 from gnss_service import db
 from gnss_service.models import Job
-
-import pandas as pd
 
 
 def _post(client, obs, nav):

@@ -6,9 +6,8 @@ from datetime import datetime
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy.orm import Session
-
 from redis.exceptions import RedisError
+from sqlalchemy.orm import Session
 
 from . import db, jobqueue, jobs
 from .config import settings
@@ -47,7 +46,8 @@ async def _save_upload(upload: UploadFile, dest) -> None:
         while chunk := await upload.read(CHUNK):
             size += len(chunk)
             if size > settings.max_upload_bytes:
-                raise HTTPException(413, f"{upload.filename}: file exceeds {settings.max_upload_bytes // 2**20} MB limit")
+                limit_mb = settings.max_upload_bytes // 2**20
+                raise HTTPException(413, f"{upload.filename}: file exceeds {limit_mb} MB limit")
             fh.write(chunk)
     if size == 0:
         raise HTTPException(422, f"{upload.filename}: file is empty")
@@ -59,7 +59,7 @@ def dispatch(job_id: str) -> None:
         jobqueue.enqueue_job(job_id)
     except RedisError:
         jobs.mark_failed(job_id, "queue unavailable")
-        raise HTTPException(503, "job queue is unavailable, try again later")
+        raise HTTPException(503, "job queue is unavailable, try again later") from None
 
 
 @app.get("/health")
@@ -110,4 +110,5 @@ def get_result(job_id: str, name: str, session: Session = Depends(get_db)):
         raise HTTPException(404, f"unknown result; choose one of {sorted(jobs.RESULT_FILES)}")
     if job.status != JobStatus.succeeded:
         raise HTTPException(409, f"job is {job.status.value}, result not available")
-    return FileResponse(jobs.job_dir(job_id) / "out" / name, media_type=jobs.RESULT_FILES[name], filename=name)
+    path = jobs.job_dir(job_id) / "out" / name
+    return FileResponse(path, media_type=jobs.RESULT_FILES[name], filename=name)

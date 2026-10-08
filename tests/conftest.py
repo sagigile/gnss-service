@@ -2,8 +2,8 @@ from pathlib import Path
 
 import fakeredis
 import pytest
-from rq import SimpleWorker
 from fastapi.testclient import TestClient
+from rq import SimpleWorker
 from sqlalchemy.orm import sessionmaker
 
 from gnss_service import db, jobqueue, models  # noqa: F401

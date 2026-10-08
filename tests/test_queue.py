@@ -1,5 +1,3 @@
-import fakeredis
-import pytest
 from redis.exceptions import ConnectionError as RedisConnectionError
 
 from gnss_service import db, jobqueue, jobs
