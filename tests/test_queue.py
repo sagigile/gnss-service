@@ -70,7 +70,12 @@ def test_real_timeout_marks_job_failed(client, monkeypatch, obs_bytes, nav_bytes
     import time
 
     monkeypatch.setenv("JOB_TIMEOUT_SECONDS", "1")
-    monkeypatch.setattr(jobs, "process", lambda *a, **k: time.sleep(10))
+
+    def spin(*a, **k):  # short sleeps so the timeout can fire on Windows too
+        for _ in range(400):
+            time.sleep(0.05)
+
+    monkeypatch.setattr(jobs, "process", spin)
     jid = _post(client, obs_bytes, nav_bytes).json()["id"]
     client.run_worker()
     job = _status(jid)
