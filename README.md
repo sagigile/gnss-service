@@ -75,6 +75,10 @@ suite with Postgres and Redis service containers, and a smoke test of the Compos
 
 Performance numbers and how they were measured: [docs/benchmark.md](docs/benchmark.md).
 
+## License and credits
+
+MIT, see [LICENSE](LICENSE). Provenance of the vendored solver and sample data: [NOTICE](src/gnss_service/solver/NOTICE.md).
+
 ## Known limitations
 
 - No authentication or rate limiting; no cleanup of old job files.
